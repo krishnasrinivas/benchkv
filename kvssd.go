@@ -70,7 +70,9 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -109,18 +111,57 @@ func newKVSSD(device string) (KVAPI, error) {
 
 func (k *kvssd) Put(key string, value []byte) error {
 	kvKey := []byte(key)
-	C.minio_kvs_put(k.kvd, unsafe.Pointer(&kvKey[0]), C.int(len(kvKey)), unsafe.Pointer(&value[0]), C.int(len(value)))
+	timer := time.NewTimer(5 * time.Second)
+	doneCh := make(chan struct{})
+	go func() {
+		C.minio_kvs_put(k.kvd, unsafe.Pointer(&kvKey[0]), C.int(len(kvKey)), unsafe.Pointer(&value[0]), C.int(len(value)))
+		close(doneCh)
+	}()
+	select {
+	case <-timer.C:
+		fmt.Printf("put(%s) timedout\n", key)
+		return errors.New("timeout")
+	case <-doneCh:
+		timer.Stop()
+		break
+	}
 	return nil
 }
 
 func (k *kvssd) Get(key string, value []byte) error {
 	kvKey := []byte(key)
-	C.minio_kvs_get(k.kvd, unsafe.Pointer(&kvKey[0]), C.int(len(kvKey)), unsafe.Pointer(&value[0]), C.int(len(value)))
+	timer := time.NewTimer(5 * time.Second)
+	doneCh := make(chan struct{})
+	go func() {
+		C.minio_kvs_get(k.kvd, unsafe.Pointer(&kvKey[0]), C.int(len(kvKey)), unsafe.Pointer(&value[0]), C.int(len(value)))
+		close(doneCh)
+	}()
+	select {
+	case <-timer.C:
+		fmt.Printf("get(%s) timedout\n", key)
+		return errors.New("timeout")
+	case <-doneCh:
+		timer.Stop()
+		break
+	}
 	return nil
 }
 
 func (k *kvssd) Delete(key string) error {
 	kvKey := []byte(key)
-	C.minio_kvs_delete(k.kvd, unsafe.Pointer(&kvKey[0]), C.int(len(kvKey)))
+	timer := time.NewTimer(5 * time.Second)
+	doneCh := make(chan struct{})
+	go func() {
+		C.minio_kvs_delete(k.kvd, unsafe.Pointer(&kvKey[0]), C.int(len(kvKey)))
+		close(doneCh)
+	}()
+	select {
+	case <-timer.C:
+		fmt.Printf("delete(%s) timedout\n", key)
+		return errors.New("timeout")
+	case <-doneCh:
+		timer.Stop()
+		break
+	}
 	return nil
 }
