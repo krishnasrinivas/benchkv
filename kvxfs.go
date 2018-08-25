@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"syscall"
 )
 
 type kvxfs struct {
@@ -15,7 +16,7 @@ func newKVXFS(device string) (*kvxfs, error) {
 }
 
 func (k *kvxfs) Put(key string, value []byte) error {
-	f, err := os.OpenFile(path.Join(k.dir, key), os.O_CREATE|os.O_WRONLY|os.O_SYNC, 0400)
+	f, err := os.OpenFile(path.Join(k.dir, key), os.O_CREATE|os.O_WRONLY|os.O_SYNC|syscall.O_DIRECT, 0400)
 	if err != nil {
 		return err
 	}
@@ -25,7 +26,7 @@ func (k *kvxfs) Put(key string, value []byte) error {
 }
 
 func (k *kvxfs) Get(key string, value []byte) error {
-	f, err := os.OpenFile(path.Join(k.dir, key), os.O_SYNC|os.O_RDONLY, 0400)
+	f, err := os.OpenFile(path.Join(k.dir, key), os.O_SYNC|os.O_RDONLY|syscall.O_DIRECT, 0400)
 	if err != nil {
 		return err
 	}
